@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  name: ibv-test
+spec:
+  template:
+    metadata:
+      generateName: ibv-test-
+    spec:
+      containers:
+      - name: ibv
+        image: gcr.io/innatelearning/ibv:v1
+        command: ["python"]
+        args: ["exp.py"]
+      # Do not restart containers after they exit
+      restartPolicy: Never

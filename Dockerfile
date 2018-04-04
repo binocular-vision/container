@@ -7,15 +7,14 @@ RUN pip install Pillow
 RUN pip install numpy
 RUN pip install scipy
 RUN pip install sklearn
-RUN pip install ipywidgets
 RUN python -mpip install -U pip
 RUN python -mpip install -U matplotlib
-RUN pip install progressbar2
+RUN pip install https://github.com/binocular-vision/ibv/zipball/master
 
 
 
 
 # Bundle app source
-COPY import_test.py import_test.py
-
-CMD ["python", "import_test.py"]
+COPY shift5_70patch.png shift5_70patch.png
+COPY dm.png dm.png
+COPY exp.py exp.py
