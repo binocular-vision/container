@@ -2,11 +2,12 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Unique key of the Job instance
-  name: ibv-test
+  generateName: ibv-test-
 spec:
+  backoffLimit: 2
   template:
     metadata:
-      generateName: ibv-test-
+      generateName: ibv
     spec:
       containers:
       - name: ibv
