@@ -12,6 +12,9 @@ spec:
       containers:
       - name: ibv
         image: gcr.io/innatelearning/ibv:v1
+        resources:
+          requests:
+            cpu: 1600m
         command: ["python"]
         args: ["exp.py"]
       # Do not restart containers after they exit

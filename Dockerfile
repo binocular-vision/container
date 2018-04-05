@@ -7,6 +7,7 @@ RUN pip install Pillow
 RUN pip install numpy
 RUN pip install scipy
 RUN pip install sklearn
+RUN pip install google-cloud-storage
 RUN python -mpip install -U pip
 RUN python -mpip install -U matplotlib
 RUN pip install https://github.com/binocular-vision/ibv/zipball/master
