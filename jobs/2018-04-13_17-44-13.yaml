@@ -2,14 +2,14 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Unique key of the Job instance
-  generateName: ibv-test-
+  generateName: "ibv-"
 spec:
   backoffLimit: 2
-  completions: 3
-  parallelism: 100
+  completions: 72
+  parallelism: 72
   template:
     metadata:
-      generateName: ibv
+      name: ibv
     spec:
       containers:
       - name: ibv
@@ -18,6 +18,6 @@ spec:
           requests:
             cpu: 1600m
         command: ["python"]
-        args: ["exp.py", "2018-04-13_15-57-32"]
+        args: ["exp.py", "2018-04-13_17-44-13"]
       # Do not restart containers after they exit
       restartPolicy: Never
