@@ -1,5 +1,7 @@
+import os
 import ibv
 import json
+import random
 import datetime
 import argparse
 import numpy as np
@@ -16,12 +18,22 @@ def get_parameters(bucket,experiment_id):
         return experiment_parameters
 
 def run_workload(bucket,experiment_parameters):
+    started = []
+    total = []
+    path = "experiments/{}/outputs/json/".format(experiment_parameters["experiment_id"])
     for lgn_parameters in experiment_parameters["lgn_parameter_set"]:
-        experiment_subparameters = extract_subparameters(experiment_parameters,lgn_parameters)
-        job_complete = check_log(bucket, experiment_subparameters)
-        if job_complete is not True:
-            work(bucket, experiment_subparameters)
-
+        total.append(lgn_parameters["name"])
+    while len(set(total)) != len(set(started)):
+        started = []
+        for blob in bucket.list_blobs(prefix=path):
+            started.append(os.path.basename(blob.name))
+        diff = list(set(total)-set(started))
+        if len(diff) == 0:
+            break
+        selection = random.choice(diff)
+        experiment_subparameters = extract_subparameters(experiment_parameters,experiment_parameters["lgn_parameter_set"][total.index(selection)])
+        check_log(bucket,experiment_subparameters)
+        work(bucket, experiment_subparameters)
 
 
 def extract_subparameters(experiment_parameters, lgn_parameters):
@@ -56,18 +68,20 @@ def check_log(bucket, experiment_subparameters):
     log_path = "experiments/{}/outputs/json/{}".format(experiment_id,lgn_parameter_name)
     log_blob = bucket.get_blob(log_path)
     if log_blob == None:
-        created_blob = bucket.blob(log_path)
-        experiment_subparameters["started"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        created_blob.upload_from_string(json.dumps(experiment_subparameters,indent=4, separators=(',', ': ')))
-        return False
+        if experiment_subparameters["started"] == None:
+            created_blob = bucket.blob(log_path)
+            experiment_subparameters["started"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            print(experiment_subparameters["lgn_parameters"]["name"])
+            created_blob.upload_from_string(json.dumps(experiment_subparameters,indent=4, separators=(',', ': ')))
+            return False
     else:
-        experiment_subparameters["finished"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        log_blob.upload_from_string(json.dumps(experiment_subparameters,indent=4, separators=(',', ': ')))
-        return True
+        if experiment_subparameters["started"] is not None and experiment_subparameters["correlation"] is not None:
+            experiment_subparameters["finished"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            log_blob.upload_from_string(json.dumps(experiment_subparameters,indent=4, separators=(',', ': ')))
+            return True
 
 def work(bucket, experiment_subparameters):
-    print(experiment_subparameters)
-    results = ibv.cloud_experiment(bucket,experiment_subparameters,10,3)
+    results = ibv.cloud_experiment(bucket,experiment_subparameters,5,5)
     check_log(bucket,results)
 
 

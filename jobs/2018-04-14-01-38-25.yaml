@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Unique key of the Job instance
+  generateName: "ibv-"
+spec:
+  backoffLimit: 2
+  completions: 28
+  parallelism: 28
+  template:
+    metadata:
+      name: ibv
+    spec:
+      containers:
+      - name: ibv
+        image: gcr.io/innatelearning/ibv:v2
+        resources:
+          requests:
+            cpu: 1600m
+        command: ["python"]
+        args: ["exp.py", "2018-04-14-01-38-25"]
+      # Do not restart containers after they exit
+      restartPolicy: Never

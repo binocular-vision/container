@@ -16,17 +16,22 @@ python create_experiment_file.py -nf=20 -nc=5 -np=100 -ps=8 -ls=128 -la 1 2 0.5 
 def generate_parameter_steps(min,max,step):
     return np.linspace(min,max,step)
 
+def calculate_optimal_p(t, r, a):
+    p = t / (((np.pi * (r**2)/2))*(1+a))
+    return p
+
 def generate_lgn_parameter_set(a_array,r_array,p_array,t_array):
     lgn_parameter_set = []
     for lgn_a in a_array:
         for lgn_r in r_array:
-            for pshift in p_array:
-                for lgn_t in t_array:
-                    name = "a{:0.2f}_r{:.2f}_p{:.2f}_t{:.2f}".format(lgn_a,lgn_r,lgn_p,lgn_t)
+            for lgn_t in t_array:
+                for pscale in p_array:
+                    p = calculate_optimal_p(lgn_t, lgn_r, lgn_a) * pscale
+                    name = "a{:0.2f}_r{:.2f}_p{:.2f}_t{:.2f}".format(lgn_a,lgn_r,p,lgn_t)
                     parameter = {
                     "lgn_a": lgn_a,
                     "lgn_r": lgn_r,
-                    "lgn_p": lgn_p,
+                    "lgn_p": p,
                     "lgn_t": lgn_t,
                     "name" : name,
                     }
@@ -72,7 +77,7 @@ if __name__ == "__main__":
     parser.add_argument("-dm","--depthmap", help="specify path to depthmap", required=True)
     parser.add_argument("-as","--autostereogram", help="specify path to autostereogram", required=True)
     parser.add_argument("-ap","--autostereogram_patch", help="size of autostereogram patch", type=int, required=True)
-    parser.add_argument("-id","--id", help="experiment_id, defaults to current datetime", required=False, default=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    parser.add_argument("-id","--id", help="experiment_id, defaults to current datetime", required=False, default=datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     parser.add_argument("-nf","--num_filters", help="number of generated v1-like filters", type=int, required=True)
     parser.add_argument("-nc","--num_components", help="number of ICA components (per set of patches)", type=int, required=True)
     parser.add_argument("-np","--num_patches", help="number of patches (per ICA)", type=int, required=True)
@@ -87,13 +92,16 @@ if __name__ == "__main__":
     r_array = generate_parameter_steps(args.lgn_r[0],args.lgn_r[1],args.lgn_r[2])
     p_array = generate_parameter_steps(args.lgn_p[0],args.lgn_p[1],args.lgn_p[2])
     t_array = generate_parameter_steps(args.lgn_t[0],args.lgn_t[1],args.lgn_t[2])
+
     #add error checking for empty arrays based on np.arange impossible case (1,1,1)
     depthmap_name = os.path.basename(os.path.normpath(args.depthmap))
     autosterogram_name = os.path.basename(os.path.normpath(args.autostereogram))
-
     pset = generate_lgn_parameter_set(a_array,r_array,p_array,t_array)
     exp = generate_experiment_set(args.bucket, args.id,depthmap_name, autosterogram_name,args.autostereogram_patch, args.num_filters,args.num_components,args.num_patches,args.patch_size,args.lgn_size,pset)
     push_inputs(exp, args.depthmap, args.autostereogram)
+    total = []
+    for lgn_parameters in exp["lgn_parameter_set"]:
+        total.append(lgn_parameters["name"])
     kubefile = """apiVersion: batch/v1
 kind: Job
 metadata:
@@ -109,11 +117,14 @@ spec:
     spec:
       containers:
       - name: ibv
-        image: gcr.io/innatelearning/ibv:v2
+        image: gcr.io/innatelearning/ibv:v15
+        resources:
+          requests:
+            cpu: 1600m
         command: ["python"]
         args: ["exp.py", "{}"]
       # Do not restart containers after they exit
-      restartPolicy: Never""".format(len(pset),len(pset),args.id)
+      restartPolicy: Never""".format(len(set(total)),len(pset),args.id)
 
 
     with open("jobs/{}.yaml".format(args.id), "w") as text_file:
