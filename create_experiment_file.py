@@ -14,13 +14,13 @@ python create_experiment_file.py -nf=20 -nc=5 -np=100 -ps=8 -ls=128 -la 1 2 0.5 
 """
 
 def generate_parameter_steps(min,max,step):
-    return np.arange(min,max,step)
+    return np.linspace(min,max,step)
 
 def generate_lgn_parameter_set(a_array,r_array,p_array,t_array):
     lgn_parameter_set = []
     for lgn_a in a_array:
         for lgn_r in r_array:
-            for lgn_p in p_array:
+            for pshift in p_array:
                 for lgn_t in t_array:
                     name = "a{:0.2f}_r{:.2f}_p{:.2f}_t{:.2f}".format(lgn_a,lgn_r,lgn_p,lgn_t)
                     parameter = {
@@ -109,7 +109,7 @@ spec:
     spec:
       containers:
       - name: ibv
-        image: gcr.io/innatelearning/ibv:v1
+        image: gcr.io/innatelearning/ibv:v2
         command: ["python"]
         args: ["exp.py", "{}"]
       # Do not restart containers after they exit
