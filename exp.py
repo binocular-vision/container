@@ -32,8 +32,8 @@ def run_workload(bucket,experiment_parameters):
             break
         selection = random.choice(diff)
         experiment_subparameters = extract_subparameters(experiment_parameters,experiment_parameters["lgn_parameter_set"][total.index(selection)])
-        check_log(bucket,experiment_subparameters)
-        work(bucket, experiment_subparameters)
+        ex = check_log(bucket,experiment_subparameters)
+        work(bucket, ex)
 
 
 def extract_subparameters(experiment_parameters, lgn_parameters):
@@ -71,18 +71,34 @@ def check_log(bucket, experiment_subparameters):
         if experiment_subparameters["started"] == None:
             created_blob = bucket.blob(log_path)
             experiment_subparameters["started"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+            print("started")
             print(experiment_subparameters["lgn_parameters"]["name"])
+            print(experiment_subparameters)
             created_blob.upload_from_string(json.dumps(experiment_subparameters,indent=4, separators=(',', ': ')))
-            return False
+            return experiment_subparameters
     else:
-        if experiment_subparameters["started"] is not None and experiment_subparameters["correlation"] is not None:
+        #check this logic
+        if experiment_subparameters["correlation"] is not None:
             experiment_subparameters["finished"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
             log_blob.upload_from_string(json.dumps(experiment_subparameters,indent=4, separators=(',', ': ')))
-            return True
+            return experiment_subparameters
 
 def work(bucket, experiment_subparameters):
-    results = ibv.cloud_experiment(bucket,experiment_subparameters,5,5)
-    check_log(bucket,results)
+    try:
+        results = ibv.cloud_experiment(bucket,experiment_subparameters,5,5)
+    except ValueError as err:
+        results = experiment_subparameters
+        results["finished"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        # check error and set correlation
+        if str(err) == 'LGN: less than 5 percent':
+            results["correlation"] = -1.0
+
+        if str(err) == 'LGN: greater than 95 percent':
+            results["correlation"] = 2.0
+
+    
+    ex = check_log(bucket,results)
+
 
 
 def run():

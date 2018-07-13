@@ -9,7 +9,7 @@ from google.cloud import storage
 """
 
 
-python create_experiment_file.py -nf=20 -nc=5 -np=100 -ps=8 -ls=128 -la 1 2 0.5 -lp 1 2 0.5 -lt 1 2 0.5 -lr 1 2 0.5
+python create_experiment_file.py -nf=2000 -nc=20 -np=100000 -ps=8 -ls=64 -la 0.05 0.05 1 -lp 0.5 1.5 10 -lt 1 4 8 -lr 4 4 1
 
 """
 
@@ -25,13 +25,14 @@ def generate_lgn_parameter_set(a_array,r_array,p_array,t_array):
     for lgn_a in a_array:
         for lgn_r in r_array:
             for lgn_t in t_array:
-                for pscale in p_array:
-                    p = calculate_optimal_p(lgn_t, lgn_r, lgn_a) * pscale
-                    name = "a{:0.2f}_r{:.2f}_p{:.2f}_t{:.2f}".format(lgn_a,lgn_r,p,lgn_t)
+                for lgn_p in p_array:
+                    #p = calculate_optimal_p(lgn_t, lgn_r, lgn_a) * lgn_p
+                    #switch lgn_p to p and uncomment the above line to handle percentages
+                    name = "a{:0.2f}_r{:.2f}_p{:.2f}_t{:.2f}".format(lgn_a,lgn_r,lgn_p,lgn_t)
                     parameter = {
                     "lgn_a": lgn_a,
                     "lgn_r": lgn_r,
-                    "lgn_p": p,
+                    "lgn_p": lgn_p,
                     "lgn_t": lgn_t,
                     "name" : name,
                     }
@@ -117,14 +118,14 @@ spec:
     spec:
       containers:
       - name: ibv
-        image: gcr.io/innatelearning/ibv:v15
+        image: gcr.io/innatelearning/ibv:v18
         resources:
           requests:
-            cpu: 1600m
+            cpu: 300m
         command: ["python"]
         args: ["exp.py", "{}"]
       # Do not restart containers after they exit
-      restartPolicy: Never""".format(len(set(total)),len(pset),args.id)
+      restartPolicy: Never""".format(len(set(total)),len(set(total)),args.id)
 
 
     with open("jobs/{}.yaml".format(args.id), "w") as text_file:

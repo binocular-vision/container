@@ -1,43 +1,43 @@
 import json
+from datetime import datetime,timedelta
+import time
+import urllib
+
 import numpy as np
 from google.cloud import storage
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 
-
-
 client = storage.Client()
 bucket = client.get_bucket('ibvdata')
-experiment_id = "2018-04-14-06-00-26"
-path = "experiments/{}/outputs/json/".format(experiment_id)
+experiment_id = "2018-04-26-13-38-46"
+path = "experiments/{}/outputs/json".format(experiment_id)
+names = []
+response = urllib.urlopen("https://storage.googleapis.com/ibvdata/experiments/{}/inputs/parameters".format(experiment_id))
+parameter_set = json.load(response)
+for params in parameter_set["lgn_parameter_set"]:
+    names.append(params["name"])
 
-T = []
-P = []
-C = []
-
+timedeltas = []
+started = 0
+completed = 0
 for blob in bucket.list_blobs(prefix=path):
     result =  json.loads(blob.download_as_string())
-    T.append(result["lgn_parameters"]["lgn_t"])
-    P.append(result["lgn_parameters"]["lgn_p"])
-    C.append(result["correlation"])
+    if result["finished"] == None:
+        started += 1
+        #print(result["lgn_parameters"]["name"])
+        #blob.delete()
+    if result["finished"] is not None:
+        completed += 1
+        timedeltas.append(datetime.strptime(result["finished"],"%Y-%m-%d_%H:%M:%S") - datetime.strptime(result["started"],"%Y-%m-%d_%H:%M:%S"))
+
+if completed > 0:
+    average_timedelta = sum(timedeltas, timedelta(0)) / len(timedeltas)
+    print(average_timedelta)
+
+print("{} started".format(started))
+print("{} parameters in total".format(len(set(names))))
 
 
-T = np.array(T)
-P = np.array(P)
-C = np.array(C)
 
-print(T)
-print(P)
-print(C)
-
-
-column = np.column_stack((T,P))
-xi = np.linspace(T.min(), T.max(), 100)
-yi = np.linspace(P.min(), P.max(), 100)
-xi, yi = np.meshgrid(xi, yi)
-
-# interpolate
-zi = griddata(column, C, (xi, yi), method="cubic")
-
-plt.contourf(xi, yi, zi)
-plt.show()
+print("{0:.2f} complete".format(float(completed) / len(set(names))))
