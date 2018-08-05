@@ -118,7 +118,7 @@ spec:
     spec:
       containers:
       - name: ibv
-        image: gcr.io/innatelearning/ibv:v18
+        image: gcr.io/innatelearning/ibv:0.1.0
         resources:
           requests:
             cpu: 300m

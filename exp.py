@@ -84,20 +84,22 @@ def check_log(bucket, experiment_subparameters):
             return experiment_subparameters
 
 def work(bucket, experiment_subparameters):
+    print(bucket)
+    print(experiment_subparameters["depthmap_path"])
     try:
         results = ibv.cloud_experiment(bucket,experiment_subparameters,5,5)
     except ValueError as err:
         results = experiment_subparameters
         results["finished"] = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
         # check error and set correlation
-        if str(err) == 'LGN: less than 5 percent':
+        if str(err) == 'LGN: activity less than low bound':
             results["correlation"] = -1.0
 
-        if str(err) == 'LGN: greater than 95 percent':
+        if str(err) == 'LGN: activity greater than high bound':
             results["correlation"] = 2.0
 
     
-    ex = check_log(bucket,results)
+    check_log(bucket,results)
 
 
 
